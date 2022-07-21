@@ -1,0 +1,8 @@
+# "Authored by" select behaviour.
+authored_by_select:
+  js:
+    js/authored_by_select.js: {}
+  dependencies:
+    - core/jquery
+    - core/drupal
+    - core/jquery.once

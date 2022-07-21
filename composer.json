@@ -1,0 +1,17 @@
+{
+  "name": "proteo/abselect",
+  "description": "A Drupal module that creates a new widget allowing to pick users from a select list.",
+  "type": "drupal-custom-module",
+  "homepage": "https://github.com/proteo/abselect",
+  "license": "GPL-3.0+",
+  "authors": [
+    {
+      "name": "Proteo",
+      "email": "me@proteo.dev"
+    }
+  ],
+  "require": {
+    "php": ">=7.4.0",
+    "drupal/core": "^9.3"
+  }
+}

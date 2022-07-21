@@ -1,0 +1,58 @@
+<?php
+
+/**
+ * @file
+ * Authored By Select module file.
+ */
+
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\abselect\Plugin\Field\FieldWidget\AuthoredBySelect;
+use Drupal\user\Entity\User;
+
+/**
+ * Implements hook_entity_base_field_info_alter().
+ */
+function abselect_entity_base_field_info_alter(&$fields, EntityTypeInterface $entity_type) {
+  // Sets the "Authored by" field of nodes to use our custom form widget.
+  if ($entity_type->id() == 'node') {
+    $roles = AuthoredBySelect::getUserRoles(TRUE);
+    $fields['uid']->setDisplayOptions('form', [
+      'type' => 'authored_by_select',
+      'weight' => 5,
+      'settings' => [
+        'delegation_roles' => $roles,
+        'authoring_roles' => $roles,
+        'disabled_visibility' => 'readonly',
+      ],
+    ]);
+  }
+}
+
+/**
+ * Implements hook_form_node_form_alter().
+ */
+function abselect_form_node_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  $storage = $form_state->getStorage();
+  $uid_field = $storage['form_display']->getComponent('uid');
+  if (!empty($uid_field) && $uid_field['type'] == 'authored_by_select') {
+    if (isset($form['uid']['widget'][0]['target_id']['#assignedAuthor'])) {
+      // Change the name of the author displayed in the meta information area if
+      // current users will not be able to set themselves as author. This won't
+      // change the functionality of the form, is just a way to avoid confusion.
+      $author = User::load($form['uid']['widget'][0]['target_id']['#assignedAuthor'])
+        ->getDisplayName();
+    }
+    elseif (isset($form['uid']['widget'][0]['target_id']['#default_value'][0])) {
+      // Pick the selected value in the form element.
+      $author = User::load($form['uid']['widget'][0]['target_id']['#default_value'][0])
+        ->getDisplayName();
+    }
+    else {
+      // If no value was defined, it means that the only author available is the
+      // anonymous user.
+      $author = \Drupal::config('user.settings')->get('anonymous');
+    }
+    $form['meta']['author']['#markup'] = '<span class="authored-by-name">' . $author . '</span>';
+  }
+}
