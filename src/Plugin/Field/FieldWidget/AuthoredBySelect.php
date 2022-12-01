@@ -128,15 +128,15 @@ class AuthoredBySelect extends OptionsSelectWidget {
 
     // Roles with access.
     $delegation_roles = array_map(function ($role) use ($all_roles) {
-      return $all_roles[$role];
+      return $all_roles[$role] ?? NULL;
     }, array_filter($this->getSetting('delegation_roles')));
-    $summary[] = 'Delegation roles: ' . implode(', ', $delegation_roles);
+    $summary[] = 'Delegation roles: ' . implode(', ', array_filter($delegation_roles));
 
     // Include users from roles.
     $authoring_roles = array_map(function ($role) use ($all_roles) {
-      return $all_roles[$role];
+      return $all_roles[$role] ?? NULL;
     }, array_filter($this->getSetting('authoring_roles')));
-    $summary[] = 'Authoring roles: ' . implode(', ', $authoring_roles);
+    $summary[] = 'Authoring roles: ' . implode(', ', array_filter($authoring_roles));
 
     // Disabled field visibility.
     $options = $this->displayOptions();
