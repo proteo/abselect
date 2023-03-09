@@ -238,6 +238,7 @@ class AuthoredBySelect extends OptionsSelectWidget {
       if (array_intersect($user_roles, $delegation_roles)) {
         $rids = array_keys($authoring_roles);
         $uids = \Drupal::entityQuery('user')
+          ->accessCheck(FALSE)
           ->condition('roles', $rids, 'IN')
           ->sort('name')
           ->execute();
