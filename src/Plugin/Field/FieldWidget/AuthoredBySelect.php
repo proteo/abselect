@@ -7,7 +7,9 @@ use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\OptionsSelectWidget;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Form\OptGroup;
+use Drupal\user\Entity\Role;
 use Drupal\user\Entity\User;
+use Drupal\user\RoleInterface;
 
 /**
  * Plugin implementation of the "Authored by (select)" widget.
@@ -64,9 +66,13 @@ class AuthoredBySelect extends OptionsSelectWidget {
    *   Array with user roles.
    */
   public static function getUserRoles(bool $keys_only = FALSE) {
-    $roles = user_role_names(TRUE);
-    unset($roles['authenticated']);
-    return $keys_only ? array_keys($roles) : $roles;
+    $roles = array_filter(Role::loadMultiple(), fn($role) => !in_array($role->id(), [
+      // Exclude anonymous and authenticated system roles.
+      RoleInterface::ANONYMOUS_ID,
+      RoleInterface::AUTHENTICATED_ID,
+    ]));
+
+    return $keys_only ? array_keys($roles) : array_map(fn($item) => $item->label(), $roles);
   }
 
   /**
