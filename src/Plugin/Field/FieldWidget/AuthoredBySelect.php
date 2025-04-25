@@ -104,7 +104,7 @@ class AuthoredBySelect extends OptionsSelectWidget {
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
-    return new self(
+    return new static(
       $plugin_id,
       $plugin_definition,
       $configuration['field_definition'],
@@ -230,7 +230,7 @@ class AuthoredBySelect extends OptionsSelectWidget {
     $element = parent::formElement($items, $delta, $element, $form, $form_state);
 
     // Save the assigned author if we've set one.
-    if (isset($this->assignedAuthor)) {
+    if (!empty($this->assignedAuthor)) {
       $element['#assignedAuthor'] = $this->assignedAuthor;
     }
 

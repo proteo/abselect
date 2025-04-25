@@ -71,9 +71,12 @@ class AuthoredBySelect extends InOperator {
 
     $this->valueOptions = [];
 
-    foreach ($query as $row) {
-      $user = ($row->uid == 0) ? User::getAnonymousUser() : User::load($row->uid);
-      $this->valueOptions[$row->uid] = $user->getDisplayName();
+    if (!empty($query)) {
+      foreach ($query as $row) {
+        /** @var \Drupal\user\UserInterface $user */
+        $user = ($row->uid == 0) ? User::getAnonymousUser() : User::load($row->uid);
+        $this->valueOptions[$row->uid] = $user->getDisplayName();
+      }
     }
 
     // Order array by user name. We don't do this in the query so the array can
