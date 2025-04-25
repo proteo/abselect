@@ -1,7 +1,7 @@
 name: Authored By Select
 description: Creates a new widget that allows to pick users from a select list.
 type: module
-core_version_requirement: ^9 || ^10
+core_version_requirement: ^9 || ^10 || ^11
 package: Fields
 dependencies:
   - drupal:views
