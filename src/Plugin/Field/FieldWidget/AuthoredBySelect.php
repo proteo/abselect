@@ -172,7 +172,7 @@ class AuthoredBySelect extends OptionsSelectWidget {
     $element['delegation_roles'] = [
       '#type' => 'checkboxes',
       '#title' => $this->t('Roles with delegation permission'),
-      '#description' => $this->t('Users with these roles will be able to chose a user other than themselves as author. Users without these roles will see their own user name as only option available.'),
+      '#description' => $this->t('Users with these roles will be able to chose a user other than themselves as author. Users without these roles will see their own user name as the only option available.'),
       '#options' => $roles,
       '#default_value' => $this->getSetting('delegation_roles'),
       '#required' => TRUE,
