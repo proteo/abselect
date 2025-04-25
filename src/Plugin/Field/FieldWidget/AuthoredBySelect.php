@@ -2,14 +2,19 @@
 
 namespace Drupal\abselect\Plugin\Field\FieldWidget;
 
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\OptionsSelectWidget;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Form\OptGroup;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\user\Entity\Role;
 use Drupal\user\Entity\User;
 use Drupal\user\RoleInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Plugin implementation of the "Authored by (select)" widget.
@@ -43,6 +48,73 @@ class AuthoredBySelect extends OptionsSelectWidget {
    * @var int
    */
   private $assignedAuthor;
+
+  /**
+   * The entity type manager.
+   */
+  protected EntityTypeManagerInterface $entityTypeManager;
+
+  /**
+   * The module handler service.
+   */
+  protected ModuleHandlerInterface $moduleHandler;
+
+  /**
+   * Current user.
+   */
+  protected AccountProxyInterface $user;
+
+  /**
+   * Constructs a RevisionLogWidget object.
+   *
+   * @param string $plugin_id
+   *   The plugin_id for the widget.
+   * @param mixed $plugin_definition
+   *   The plugin implementation definition.
+   * @param \Drupal\Core\Field\FieldDefinitionInterface $field_definition
+   *   The definition of the field to which the widget is associated.
+   * @param array $settings
+   *   The widget settings.
+   * @param array $third_party_settings
+   *   Any third party settings.
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   *   The entity type manager.
+   * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
+   *   The module handler service.
+   * @param \Drupal\Core\Session\AccountProxyInterface $user
+   *   The current user.
+   */
+  public function __construct(
+    $plugin_id,
+    $plugin_definition,
+    FieldDefinitionInterface $field_definition,
+    array $settings,
+    array $third_party_settings,
+    EntityTypeManagerInterface $entity_type_manager,
+    ModuleHandlerInterface $module_handler,
+    AccountProxyInterface $user,
+  ) {
+    parent::__construct($plugin_id, $plugin_definition, $field_definition, $settings, $third_party_settings);
+    $this->entityTypeManager = $entity_type_manager;
+    $this->moduleHandler = $module_handler;
+    $this->user = $user;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
+    return new self(
+      $plugin_id,
+      $plugin_definition,
+      $configuration['field_definition'],
+      $configuration['settings'],
+      $configuration['third_party_settings'],
+      $container->get('entity_type.manager'),
+      $container->get('module_handler'),
+      $container->get('current_user')
+    );
+  }
 
   /**
    * {@inheritdoc}
@@ -209,12 +281,11 @@ class AuthoredBySelect extends OptionsSelectWidget {
     if (!isset($this->options)) {
       $options = [];
 
-      $active_user = \Drupal::currentUser();
-      $active_uid = $active_user->id();
+      $active_uid = $this->user->id();
       $anonymous_user = User::getAnonymousUser();
 
       // Current user roles.
-      $user_roles = $active_user->getRoles();
+      $user_roles = $this->user->getRoles();
 
       // User roles with permission to assign other users as authors.
       $delegation_roles = array_filter($this->getSetting('delegation_roles'));
@@ -232,18 +303,21 @@ class AuthoredBySelect extends OptionsSelectWidget {
       // If we're in edit mode always honor the currently saved value adding the
       // assigned author as first option.
       if ($op == 'edit') {
-        $author = ($active_uid == $current_author) ? $active_user : User::load($current_author);
+        $author = ($active_uid == $current_author) ? $this->user : User::load($current_author);
         $options[$author->id()] = $author->getDisplayName();
       }
       // If we're in creation mode and the active user can be author, add it.
       elseif (array_intersect($user_roles, $authoring_roles)) {
-        $options[$active_uid] = $active_user->getDisplayName();
+        $options[$active_uid] = $this->user->getDisplayName();
       }
 
       // Add users with roles allowed to be authors to the list.
       if (array_intersect($user_roles, $delegation_roles)) {
+        $query = $this->entityTypeManager
+          ->getStorage('user')
+          ->getQuery('AND');
         $rids = array_keys($authoring_roles);
-        $uids = \Drupal::entityQuery('user')
+        $uids = $query
           ->accessCheck(FALSE)
           ->condition('roles', $rids, 'IN')
           ->sort('name')
@@ -274,12 +348,12 @@ class AuthoredBySelect extends OptionsSelectWidget {
         $this->assignedAuthor = array_key_first($options);
       }
 
-      $module_handler = \Drupal::moduleHandler();
       $context = [
         'fieldDefinition' => $this->fieldDefinition,
         'entity' => $entity,
       ];
-      $module_handler->alter('options_list', $options, $context);
+
+      $this->moduleHandler->alter('options_list', $options, $context);
 
       array_walk_recursive($options, [$this, 'sanitizeLabel']);
 
